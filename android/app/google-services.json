@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "1056196800419",
+    "project_id": "park-it-db7e4",
+    "storage_bucket": "park-it-db7e4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1056196800419:android:2cdb2ac72500ba3aa3b416",
+        "android_client_info": {
+          "package_name": "com.example.park_it2"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1056196800419-aekuehcvhv6j30ljgkhhdd2t81hi858f.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.park_it2",
+            "certificate_hash": "d9014edf1cffd2203c5075cd70ef4ffe382f80e7"
+          }
+        },
+        {
+          "client_id": "1056196800419-9bstfua7ui72rkk3hi9gljdm93kui4c0.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCHR0DeeWdPtZCHh1sP6qAnN3Tstbh-Gzg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1056196800419-9bstfua7ui72rkk3hi9gljdm93kui4c0.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
