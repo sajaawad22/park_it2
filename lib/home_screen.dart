@@ -206,16 +206,21 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           Expanded(
                             child: ElevatedButton(
-                              onPressed: () {
-                                Navigator.push(context,
-                                  MaterialPageRoute(builder: (context) => DetailsScreen()),
-                                );
+                              onPressed: () async {
+                                final doc = await FirebaseFirestore.instance.collection("parking_spots").doc(spotId).get();
+                                if(doc.exists && context.mounted){
+                                  Navigator.push(context,
+                                    MaterialPageRoute(builder: (context) => DetailsScreen(parkingData: doc.data()!)
+                                    ),
+                                  );
+                                }
+
                               },
                               style: ElevatedButton.styleFrom(
                                   backgroundColor: Color(0xFFFF5177)),
                               child: Text('Details',
                                   style: TextStyle(color: Colors.white)),
-                
+
                             ),
                           ),
                         ],
