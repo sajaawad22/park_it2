@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:park_it2/pick_parking_screen.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 
 
 class BookParkingScreen extends StatefulWidget {
@@ -13,47 +16,187 @@ class _BookParkingScreenState extends State<BookParkingScreen> {
   CalendarFormat _calendarFormat = CalendarFormat.month;
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
+  double _selectedHours = 1.0;
+  TimeOfDay _startTime = TimeOfDay(hour: 8, minute: 0);
+  TimeOfDay _endTime = TimeOfDay(hour: 10, minute: 0);
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
-        leading: Icon(Icons.arrow_back),
+        leading: IconButton(icon:
+        Icon(Icons.arrow_back), onPressed: () {
+          Navigator.pop(context);
+        },),
         title: Text("Book Parking Details", style: TextStyle(fontWeight: FontWeight.bold),),
       ),
       body: Center(
-        child: Column(
-          children: [
-            TableCalendar(
-              firstDay: DateTime.now(),
-              lastDay: DateTime.utc(2030, 12, 31),
-              focusedDay: _focusedDay,
-              selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-              onDaySelected: (selectedDay, focusedDay) {
-                setState(() {
-                  _selectedDay = selectedDay;
-                  _focusedDay = focusedDay;
-                });
-              },
-              calendarFormat: _calendarFormat,
-              onFormatChanged: (format) {
-                setState(() {
-                  _calendarFormat = format;
-                });
-              },
-              calendarStyle: CalendarStyle(
-                todayDecoration: BoxDecoration(
-                  color: Colors.pink.shade100,
-                  shape: BoxShape.circle,
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            child: Column(
+              children: [
+                SizedBox(height: 10),
+                Align(
+                  alignment: Alignment.topLeft,
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 20.0,),
+                    child: Text("Select Date",
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 18),
+                      textAlign: TextAlign.left,),
+                  ),
                 ),
-                selectedDecoration: BoxDecoration(
-                  color: Color(0xFFFF5177),
-                  shape: BoxShape.circle,
+                TableCalendar(
+                  firstDay: DateTime.now(),
+                  lastDay: DateTime.utc(2030, 12, 31),
+                  focusedDay: _focusedDay,
+                  selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+                  onDaySelected: (selectedDay, focusedDay) {
+                    setState(() {
+                      _selectedDay = selectedDay;
+                      _focusedDay = focusedDay;
+                    });
+                  },
+                  calendarFormat: _calendarFormat,
+                  onFormatChanged: (format) {
+                    setState(() {
+                      _calendarFormat = format;
+                    });
+                  },
+                  calendarStyle: CalendarStyle(
+                    todayDecoration: BoxDecoration(
+                      color: Colors.pink.shade100,
+                      shape: BoxShape.circle,
+                    ),
+                    selectedDecoration: BoxDecoration(
+                      color: Color(0xFFFF5177),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
                 ),
-              ),
+                SizedBox(height: 5),
+                Align(
+                  alignment: Alignment.topLeft,
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 20.0,),
+                    child: Text("Duration ",
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 18),
+                      textAlign: TextAlign.left,),
+                  ),
+                ),
+                SizedBox(height: 5),
+          
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 5),
+                  child: Slider(
+                      value: _selectedHours ,
+                      min: 1.0,
+                      max: 12.0,
+                    label: '${_selectedHours.toInt()} hrs',
+                    activeColor: Color(0xFFFF5177),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedHours= value;
+                        });
+                      },
+                  ),
+                ),
+                  Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+              Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("Start Hour", style: TextStyle(fontWeight: FontWeight.bold)),
+                SizedBox(height: 5),
+                TextButton(
+                  onPressed: () async {
+                    final TimeOfDay? picked = await showTimePicker(
+                      context: context,
+                      initialTime: _startTime,
+                    );
+
+                    if (picked != null && picked != _startTime) {
+                      setState(() {
+                        _startTime = picked;
+                        final endHour = (_startTime.hour + _selectedHours.toInt()) % 24;
+                        _endTime = TimeOfDay(hour: endHour, minute: _startTime.minute);
+                      });
+                    };
+                  },
+
+                  style: TextButton.styleFrom(
+                    backgroundColor: Color(0xFFFCECF0),
+                    foregroundColor: Color(0xFFFF5177),
+                  ),
+                  child: Text(_startTime.format(context)),
+                ),
+              ],
             ),
-          ],
+            Padding(
+              padding: const EdgeInsets.only(top: 20),
+              child: Icon(Icons.arrow_forward_sharp, color: Colors.black),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("End Hour", style: TextStyle(fontWeight: FontWeight.bold)),
+                SizedBox(height: 5),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Color(0xFFFCECF0),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    _endTime.format(context),
+                    style: TextStyle(color: Color(0xFFFF5177)),
+                  ),
+                ),
+                  ],
+            ),
+          
+            ],
+            ),
+                  ),
+                SizedBox(height: 10),
+                Align(
+                  alignment: Alignment.topLeft,
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 20.0,),
+                    child: Text("Total",
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 18),
+                      textAlign: TextAlign.left,),
+                  ),
+                ),
+
+                SizedBox(height: 5),
+                Divider(),
+                SizedBox(height: 10),
+          
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(context,
+                      MaterialPageRoute(builder: (context) => PickParkingScreen()),
+                    );
+                  } ,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFFFF5177),
+                    minimumSize: Size(double.infinity, 50),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                  ),
+                  child: Text('Continue', style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            ),
+          ),
         ),
         ),
       );

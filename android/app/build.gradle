@@ -11,7 +11,7 @@ if (localPropertiesFile.exists()) {
 }
 android {
     namespace = "com.example.park_it2"
-    compileSdk = 34
+    compileSdk = 35
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
