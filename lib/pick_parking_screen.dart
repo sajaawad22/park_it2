@@ -17,7 +17,6 @@ class _PickParkingScreenState extends State<PickParkingScreen> {
         .collection('parking_spots')
         .doc('hzYQG3MQjo1lg13fwFnf')
         .collection('spots')
-        //.where('floor', isEqualTo: floor)
         .get();
 
     return snapshot.docs.map((doc) => {
