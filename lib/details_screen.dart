@@ -38,6 +38,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -100,7 +101,9 @@ class _DetailsScreenState extends State<DetailsScreen> {
                   child: Column(
                     children: [
                       Text(
-                        widget.parkingData['priceperhour'] ?? "No price",
+                        widget.parkingData['priceperhour'] != null
+                            ? '₺${widget.parkingData['priceperhour']}'
+                            : 'No price',
                         style: TextStyle(fontSize: 25, color: Color(0xFFFF5177), fontWeight: FontWeight.bold),
         
                       ),
@@ -133,10 +136,16 @@ class _DetailsScreenState extends State<DetailsScreen> {
                   SizedBox(width: 10),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: (){
-                        Navigator.push(context,
-                          MaterialPageRoute(builder: (context) => SelectVehicleScreen()),
+                      onPressed: () async {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => SelectVehicleScreen(
+                                parkingData: widget.parkingData,
+                              ),
+                            ),
                           );
+
                       },
                       style: ElevatedButton.styleFrom(
                           backgroundColor: Color(0xFFFF5177)),

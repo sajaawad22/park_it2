@@ -13,7 +13,6 @@ import 'package:google_maps_cluster_manager_2/google_maps_cluster_manager_2.dart
 import 'search_screen.dart';
 import 'notifications_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:park_it2/details_screen.dart';
 
 class ParkingSpot with gm_cluster.ClusterItem {
   final String id;

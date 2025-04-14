@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'home_screen.dart';
 import 'saved_screen.dart';
 import 'profile_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class BookingScreen extends StatefulWidget {
   const BookingScreen({super.key});
@@ -11,6 +12,27 @@ class BookingScreen extends StatefulWidget {
 }
 
 class _BookingScreenState extends State<BookingScreen> {
+  List<Map<String, dynamic>> bookings = [];
+
+  @override
+  void initState() {
+    super.initState();
+    fetchBookings();
+  }
+
+  Future<void> fetchBookings() async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('bookings')
+        .get();
+
+    final data = snapshot.docs.map((doc) => doc.data()).toList();
+
+    setState(() {
+      bookings = List<Map<String, dynamic>>.from(data);
+      print(bookings);
+      print(snapshot.docs.length);
+    });
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -33,6 +55,39 @@ class _BookingScreenState extends State<BookingScreen> {
         elevation: 0,
 
 
+      ),
+      body: bookings.isEmpty
+          ? Center(child: CircularProgressIndicator())
+          : ListView.builder(
+        padding: EdgeInsets.all(16),
+        itemCount: bookings.length,
+        itemBuilder: (context, index) {
+          final booking = bookings[index];
+          final DateTime selectedDate = (booking['selectedDate'] as Timestamp).toDate();
+          final DateTime createdAt = (booking['createdAt'] as Timestamp).toDate();
+
+          return Container(
+            margin: EdgeInsets.only(bottom: 16),
+            padding: EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Color(0xFFFFEEF2),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Color(0xFFFF5177), width: 1),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("📍 ${booking['parkingName']}", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                SizedBox(height: 6),
+                Text("🗓️ ${selectedDate.toLocal().toString().split(' ')[0]}"),
+                Text("🕒 ${booking['startTime']} - ${booking['endTime']}"),
+                SizedBox(height: 6),
+                Text("💰 Total: ${booking['totalPrice'].toStringAsFixed(2)} Turkish Liras"),
+                Text("🕗 Booked on: ${createdAt.toLocal().toString().split('.')[0]}"),
+              ],
+            ),
+          );
+        },
       ),
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: Colors.white,
