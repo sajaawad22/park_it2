@@ -38,11 +38,14 @@ class _DetailsScreenState extends State<DetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
-        leading: IconButton(onPressed: (){}, icon: Icon(Icons.arrow_back)),
+        leading: IconButton(onPressed: (){
+          Navigator.pop(context);
+        }, icon: Icon(Icons.arrow_back)),
         title: Text("Parking Details", style: TextStyle(fontWeight: FontWeight.bold),),
       ),
       body: SingleChildScrollView(
@@ -100,7 +103,9 @@ class _DetailsScreenState extends State<DetailsScreen> {
                   child: Column(
                     children: [
                       Text(
-                        widget.parkingData['priceperhour'] ?? "No price",
+                        widget.parkingData['priceperhour'] != null
+                            ? '₺${widget.parkingData['priceperhour']}'
+                            : 'No price',
                         style: TextStyle(fontSize: 25, color: Color(0xFFFF5177), fontWeight: FontWeight.bold),
         
                       ),
@@ -133,10 +138,16 @@ class _DetailsScreenState extends State<DetailsScreen> {
                   SizedBox(width: 10),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: (){
-                        Navigator.push(context,
-                          MaterialPageRoute(builder: (context) => SelectVehicleScreen()),
+                      onPressed: () async {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => SelectVehicleScreen(
+                                parkingData: widget.parkingData,
+                              ),
+                            ),
                           );
+
                       },
                       style: ElevatedButton.styleFrom(
                           backgroundColor: Color(0xFFFF5177)),

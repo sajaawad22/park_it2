@@ -13,7 +13,6 @@ import 'package:google_maps_cluster_manager_2/google_maps_cluster_manager_2.dart
 import 'search_screen.dart';
 import 'notifications_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:park_it2/details_screen.dart';
 
 class ParkingSpot with gm_cluster.ClusterItem {
   final String id;
@@ -164,10 +163,19 @@ class _HomeScreenState extends State<HomeScreen> {
                                       icon: Icon(
                                           _isSaved ? Icons.bookmark : Icons.bookmark_border_outlined,
                                           color: Color(0xFFFF5177)),
-                                      onPressed: () {
-                                        final currentUser = FirebaseAuth.instance.currentUser;
-                                        if (currentUser != null) {
-                                          FirebaseFirestore.instance.collection('saved_spots').add({
+                                      onPressed: () async {
+                                        final currentUser = FirebaseAuth
+                                            .instance.currentUser;
+                                        if (currentUser == null) return;
+                                        final existing = await FirebaseFirestore
+                                            .instance
+                                            .collection('saved_spots').where(
+                                            'userEmail',
+                                            isEqualTo: currentUser.email).where(
+                                            'spotId', isEqualTo: spotId).get();
+                                        if (existing.docs.isEmpty) {
+                                          await FirebaseFirestore.instance
+                                              .collection('saved_spots').add({
                                             'userEmail': currentUser.email,
                                             'spotId': spotId,
                                             'name': data['name'],
@@ -175,10 +183,17 @@ class _HomeScreenState extends State<HomeScreen> {
                                             'imageUrl': data['imageUrl'],
                                             'lat': data['lat'],
                                             'lng': data['lng'],
-                                            'timestamp': FieldValue.serverTimestamp(),
+                                            'timestamp': FieldValue
+                                                .serverTimestamp(),
+                                          });
+                                          setState(() {
+                                            _isSaved = true;
+                                          });
+                                        } else {
+                                          setState(() {
+                                            _isSaved =true;
                                           });
                                         }
-
                                       },
                                     ),
                                   ],

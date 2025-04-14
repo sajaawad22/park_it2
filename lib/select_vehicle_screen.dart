@@ -5,7 +5,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 
 class SelectVehicleScreen extends StatefulWidget {
-  const SelectVehicleScreen({Key? key}) : super(key: key);
+  const SelectVehicleScreen({Key? key, required this.parkingData}) : super(key: key);
+  final Map<String, dynamic> parkingData;
+
 
   @override
   State<SelectVehicleScreen> createState() => _SelectVehicleScreenState();
@@ -211,7 +213,10 @@ class _SelectVehicleScreenState extends State<SelectVehicleScreen> {
             ElevatedButton(
               onPressed: selectedVehicle != null ? () {
                 Navigator.push(context,
-                  MaterialPageRoute(builder: (context) => BookParkingScreen()),
+                  MaterialPageRoute(builder: (context) => BookParkingScreen(
+                    parkingData: widget.parkingData,
+                  selectedVehicle: selectedVehicle,
+                  )),
                 );
 
               } : null,
