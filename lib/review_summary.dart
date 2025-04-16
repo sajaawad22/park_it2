@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'parking_ticket.dart';
 
 
 
@@ -136,6 +137,20 @@ class _ReviewSummaryState extends State<ReviewSummary> {
                       actions: [
                         ElevatedButton(
                           onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => ParkingTicket(
+                                parkingData: widget.parkingData,
+                                selectedVehicle: widget.selectedVehicle,
+                                selectedDate: widget.selectedDate,
+                                startTime: widget.startTime,
+                                endTime: widget.endTime,
+                                duration: widget.duration,
+                                totalPrice: widget.totalPrice,
+                                selectedSpotName: widget.selectedSpotName,
+                                selectedMethod :widget. selectedMethod,
+                              )),
+                            );
 
                           },
                           style: ElevatedButton.styleFrom(
