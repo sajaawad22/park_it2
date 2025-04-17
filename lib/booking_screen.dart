@@ -27,6 +27,9 @@ class _BookingScreenState extends State<BookingScreen> {
 
     final data = snapshot.docs.map((doc) => doc.data()).toList();
 
+    if (!mounted) return;
+
+
     setState(() {
       bookings = List<Map<String, dynamic>>.from(data);
       print(bookings);

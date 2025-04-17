@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'home_screen.dart';
 
 
 
@@ -126,7 +127,17 @@ Payment Method: ${widget.selectedMethod ?? "N/A"}
             SizedBox(height: 10,),
             ElevatedButton(
                 onPressed: (){
-
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => HomeScreen(
+                        selectedParkingData: {
+                          'lat': widget.parkingData['lat'],
+                          'lng': widget.parkingData['lng'],
+                        },
+                      ),
+                    ),
+                  );
             },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Color(0xFFFF5177),

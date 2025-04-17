@@ -13,6 +13,8 @@ import 'package:google_maps_cluster_manager_2/google_maps_cluster_manager_2.dart
 import 'search_screen.dart';
 import 'notifications_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 class ParkingSpot with gm_cluster.ClusterItem {
   final String id;
@@ -21,12 +23,13 @@ class ParkingSpot with gm_cluster.ClusterItem {
 
   ParkingSpot({required this.id, required this.location, required this.name});
 
-  @override
   LatLng get locationLatLng => location;
 }
 class HomeScreen extends StatefulWidget {
   final GeoPoint ? initialLocation;
-  const HomeScreen({Key? key, this.initialLocation}) : super(key: key);
+  final Map<String, dynamic>? selectedParkingData;
+
+  const HomeScreen({super.key, this.initialLocation, this.selectedParkingData});
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
@@ -36,13 +39,108 @@ class _HomeScreenState extends State<HomeScreen> {
   LatLng _currentLocation = LatLng(0, 0);
   gm_cluster.ClusterManager<ParkingSpot>? _clusterManager;
   Set<Marker> _markers = {};
+  Set<Polyline> _polylines ={};
   bool _isSaved =false;
+
 
   @override
   void initState() {
     super.initState();
     _getCurrentLocation();
     _initClusterManager();
+    if (widget.selectedParkingData != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _navigateToSelectedParking();
+      });
+    }
+  }
+
+  Future<void> _navigateToSelectedParking() async {
+    final current = _currentLocation;
+    final destination = LatLng(widget.selectedParkingData?['lat'], widget.selectedParkingData?['lng']);
+
+    print("🚗 Starting route from $current to $destination");
+
+    final routePoints = await _getDirectionsRoute(current, destination);
+    print("📍 Route points count: ${routePoints.length}");
+
+    if (routePoints.isNotEmpty) {
+      _drawRoute(routePoints);
+
+      _mapController.animateCamera(CameraUpdate.newLatLngBounds(
+        LatLngBounds(
+          southwest: LatLng(
+            current.latitude < destination.latitude ? current.latitude : destination.latitude,
+            current.longitude < destination.longitude ? current.longitude : destination.longitude,
+          ),
+          northeast: LatLng(
+            current.latitude > destination.latitude ? current.latitude : destination.latitude,
+            current.longitude > destination.longitude ? current.longitude : destination.longitude,
+          ),
+        ),
+        50,
+      ));
+    } else {
+      print("⚠️ No route points found. Polyline not drawn.");
+    }
+  }
+  Future<List<LatLng>> _getDirectionsRoute(LatLng origin, LatLng destination) async {
+    const apiKey = 'AIzaSyDqNx3m506ugp8JYrHIbPTxC04I_bChLfE'; // Replace with your actual key
+    final url = Uri.parse(
+      'https://maps.googleapis.com/maps/api/directions/json?origin=${origin.latitude},${origin.longitude}&destination=${destination.latitude},${destination.longitude}&key=$apiKey',
+    );
+
+    final response = await http.get(url);
+    final data = json.decode(response.body);
+
+    if (data['routes'].isEmpty) return [];
+
+    final points = data['routes'][0]['overview_polyline']['points'];
+    return _decodePolyline(points);
+  }
+
+  List<LatLng> _decodePolyline(String encoded) {
+    List<LatLng> polyline = [];
+    int index = 0, len = encoded.length;
+    int lat = 0, lng = 0;
+
+    while (index < len) {
+      int b, shift = 0, result = 0;
+      do {
+        b = encoded.codeUnitAt(index++) - 63;
+        result |= (b & 0x1f) << shift;
+        shift += 5;
+      } while (b >= 0x20);
+      int dlat = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
+      lat += dlat;
+
+      shift = 0;
+      result = 0;
+      do {
+        b = encoded.codeUnitAt(index++) - 63;
+        result |= (b & 0x1f) << shift;
+        shift += 5;
+      } while (b >= 0x20);
+      int dlng = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
+      lng += dlng;
+
+      polyline.add(LatLng(lat / 1E5, lng / 1E5));
+    }
+
+    return polyline;
+  }
+
+
+
+  void _drawRoute(List<LatLng> points){
+    setState(() {
+      _polylines.add(Polyline(
+        polylineId: PolylineId('route'),
+        color: Color(0xFFFF5177),
+        width: 6,
+        points: points,
+      ));
+    });
   }
 
   void _initClusterManager() async {
@@ -57,6 +155,7 @@ class _HomeScreenState extends State<HomeScreen> {
           location: LatLng(data['lat'], data['lng']),
         );
       }).toList();
+
 
       _clusterManager = gm_cluster.ClusterManager<ParkingSpot>(
         items,
@@ -326,6 +425,7 @@ class _HomeScreenState extends State<HomeScreen> {
               zoom: 12.0,
             ),
             markers: _markers,
+            polylines: _polylines,
             onCameraMove: _clusterManager?.onCameraMove,
             onCameraIdle: _clusterManager?.updateMap,
             myLocationEnabled: true,
