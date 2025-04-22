@@ -54,10 +54,44 @@ class _ParkingTicketState extends State<ParkingTicket> {
       if (doc.exists) {
         setState(() {
           userPhoneNumber = doc.data()?['phonenumber']?.toString();
+          saveTicketToBooking();
         });
       }
     }
   }
+  Future<void> saveTicketToBooking() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final ticketData = {
+      'bookingId': DateTime.now().millisecondsSinceEpoch.toString(),
+      'vehicle': widget.selectedVehicle ?? "Unknown",
+      'parkingLot': widget.parkingData['name'],
+      'address': widget.parkingData['address'],
+      'spot': widget.selectedSpotName ?? "N/A",
+      'date': DateFormat("yyyy-MM-dd").format(widget.selectedDate),
+      'time': '${widget.startTime.format(context)} - ${widget.endTime.format(context)}',
+      'duration': '$widget.duration.toStringAsFixed(1) hours',
+      'paymentMethod': widget.selectedMethod ?? "N/A",
+      'phone': userPhoneNumber ?? "",
+      'timestamp': FieldValue.serverTimestamp(),
+    };
+
+    final snapshot = await FirebaseFirestore.instance
+        .collection('bookings')
+        .where('userId', isEqualTo: user.uid)
+        .where('startTime', isEqualTo: widget.startTime.format(context))
+        .where('selectedDate', isEqualTo: Timestamp.fromDate(widget.selectedDate))
+        .get();
+
+    if (snapshot.docs.isNotEmpty) {
+      await FirebaseFirestore.instance
+          .collection('bookings')
+          .doc(snapshot.docs.first.id)
+          .update({'ticket': ticketData});
+    }
+  }
+
 
   String getQrData() {
     return '''
