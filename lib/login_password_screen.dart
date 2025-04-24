@@ -22,9 +22,9 @@ class _LoginPasswordScreenState extends State<LoginPasswordScreen> {
   final TextEditingController _passwordController = TextEditingController();
   bool _isChecked = false;
   bool _isLoading = false;
-  String? _errorMessage;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
   bool _obscurePassword = true;
+  String? _errorMessage;
 
 
   Future<void> _signInWithGoogle() async {
@@ -52,7 +52,6 @@ class _LoginPasswordScreenState extends State<LoginPasswordScreen> {
     });
 
     try {
-      // Sign in the user with email and password
       UserCredential userCredential = await _auth.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
@@ -60,31 +59,55 @@ class _LoginPasswordScreenState extends State<LoginPasswordScreen> {
 
       User? user = userCredential.user;
 
-      if (user != null) {
+      if (user != null && user.email != null) {
+        DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+        if (!userDoc.exists) {
+          setState(() {
+            _isLoading = false;
+            _errorMessage = 'User not found in the database.';
+          });
+          await _auth.signOut();
+          return;
+        }
+        if (userDoc['isAdmin'] == true) {
+          setState(() {
+            _errorMessage = 'Admins cannot log in from this screen.';
+          });
+          await _auth.signOut();
+          setState(() {
+            _isLoading = false;
+          });
+          return;
+        }
+        // Continue saving user info if Remember Me is checked
         if (_isChecked) {
-          // Save user to Firestore (if not already done)
           await FirebaseFirestore.instance.collection("users").doc(user.uid).set({
             "uid": user.uid,
             "email": user.email,
             "rememberMe": true, // Save remember me status
           }, SetOptions(merge: true));
 
-          // Save the user info to SharedPreferences
           SharedPreferences prefs = await SharedPreferences.getInstance();
           await prefs.setString('email', _emailController.text.trim());
           await prefs.setString('password', _passwordController.text.trim());
           await prefs.setBool('rememberMe', true);
         }
+      } else {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Failed to retrieve user details.';
+        });
+        await _auth.signOut();
+        return;
       }
 
-      // Navigate to the Home screen after successful login
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => HomeScreen()),
       );
     } on FirebaseAuthException catch (e) {
       setState(() {
-        _errorMessage = e.message;
+        _errorMessage = e.message ?? 'An error occurred. Please try again.';
       });
     } finally {
       setState(() {
@@ -127,7 +150,6 @@ class _LoginPasswordScreenState extends State<LoginPasswordScreen> {
       return 'Please enter an email';
     }
 
-    // Regular expression to check if the email format is valid
     String emailPattern =
         r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$";
     RegExp regex = RegExp(emailPattern);
@@ -135,7 +157,7 @@ class _LoginPasswordScreenState extends State<LoginPasswordScreen> {
     if (!regex.hasMatch(value)) {
       return 'Enter a valid email address';
     }
-    return null; // Email is valid
+    return null;
   }
   String? validatePassword(String? value) {
     if (value == null || value.isEmpty) {
@@ -147,14 +169,13 @@ class _LoginPasswordScreenState extends State<LoginPasswordScreen> {
       return 'Password should be at least 6 characters';
     }
 
-    // Regex for password: at least one letter and one number
     String passwordPattern = r'^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,}$';
     RegExp regex = RegExp(passwordPattern);
 
     if (!regex.hasMatch(value)) {
       return 'Password must contain at least one letter and one number';
     }
-    return null; // Password is valid
+    return null;
   }
 
   @override
@@ -176,210 +197,218 @@ class _LoginPasswordScreenState extends State<LoginPasswordScreen> {
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 90.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Center(
-                    child: Text(
-                      "Login to",
-                      style: TextStyle(
-                        fontSize: 40,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  SizedBox(height: 40),
-
-                  TextFormField(
-                    controller: _emailController,
-                    decoration: InputDecoration(
-                      labelText: "Email",
-                      prefixIcon: Icon(Icons.email_outlined, color: Colors.grey),
-                      border: OutlineInputBorder(
-                        borderSide: BorderSide(
-                          color:  Color(0xFFFF5177),
-                          width: 2,
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderSide: BorderSide(
-                          color: Color(0xFFFF5177),
-                          width: 2,
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      contentPadding: EdgeInsets.symmetric(
-                        vertical: 15,
-                        horizontal: 20,
-                      ),
-                    ),
-                    validator: validateEmail,
-                  ),
-                  SizedBox(height: 20),
-
-                  TextFormField(
-                    controller: _passwordController,
-                    obscureText: _obscurePassword,
-                    decoration: InputDecoration(
-                      labelText: "Password",
-                      prefixIcon: Icon(Icons.key_sharp, color: Colors.grey),
-                      suffixIcon: IconButton(
-                          onPressed: (){
-                            setState(() {
-                              _obscurePassword = !_obscurePassword;
-                            });
-                          },
-                          icon: Icon(
-                            _obscurePassword
-                              ? Icons.visibility_off_outlined
-                              : Icons.visibility_outlined,
-                            color: Color(0xFFFF5177),
-                            size: 21,
-                              ),
-                      ),
-                      border: OutlineInputBorder(
-                        borderSide: BorderSide(
-                          color: Color(0xFFFF5177),
-                          width: 2,
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderSide: BorderSide(
-                          color: Color(0xFFFF5177), // Border color when focused
-                          width: 2,
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      contentPadding: EdgeInsets.symmetric(
-                        vertical: 15,
-                        horizontal: 20,
-                      ),
-                    ),
-                    validator: validatePassword,
-                  ),
-                  SizedBox(height: 10),
-
-                  // Remember Me Checkbox
-                  // Remember Me Checkbox
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Padding(
-                        padding: EdgeInsets.only(right: 0.0),
-                        child: Theme(
-                          data: Theme.of(context).copyWith(
-                            unselectedWidgetColor: Color(0xFFFF5177),
-                          ),
-                          child: Checkbox(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(4.0),
-                            ),
-                            side: MaterialStateBorderSide.resolveWith(
-                                  (states) => BorderSide(width: 1.5, color: Color(0xFFFF5177)),
-                            ),
-                            value: _isChecked,
-                            onChanged: (bool? value) async {
-                              setState(() {
-                                _isChecked = value ?? false;
-                              });
-
-                              SharedPreferences prefs = await SharedPreferences.getInstance();
-                              await prefs.setBool('rememberMe', _isChecked);
-                            },
-                            activeColor: Color(0xFFFF5177),
-                          ),
-                        ),
-                      ),
-                      Text(
-                        "Remember me",
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-
-                  SizedBox(height: 10),
-
-                  // Sign Up Button
-                  SizedBox(
-                    width: 360,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFFFF5177),
-                        padding: EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                      ),
-                      onPressed: _isLoading
-                          ? null
-                          : (){
-                        if(_formKey.currentState!.validate()){
-                          _signInWithEmailAndPassword();
-                        }
-                      },
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Center(
                       child: Text(
-                        "Sign in",
-                        style: TextStyle(color: Colors.white, fontSize: 15),
+                        "Login to",
+                        style: TextStyle(
+                          fontSize: 40,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
                       ),
                     ),
-                  ),
-                  SizedBox(height: 20),
+                    SizedBox(height: 40),
 
-                  GestureDetector(
-                    onTap: (){
-                      Navigator.push(context,
-                        MaterialPageRoute(builder: (context) => ForgotPasswordScreen()),
-                      );
-                    },
-                    child: Text("Forgot password?",
-                      style: TextStyle(color: Color(0xFFFF5177), fontWeight: FontWeight.bold,
-                        fontSize: 15,
+                    TextFormField(
+                      controller: _emailController,
+                      decoration: InputDecoration(
+                        labelText: "Email",
+                        prefixIcon: Icon(Icons.email_outlined, color: Colors.grey),
+                        border: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color:  Color(0xFFFF5177),
+                            width: 2,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Color(0xFFFF5177),
+                            width: 2,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        contentPadding: EdgeInsets.symmetric(
+                          vertical: 15,
+                          horizontal: 20,
+                        ),
                       ),
+                      validator: validateEmail,
                     ),
-                  ),
+                    SizedBox(height: 20),
 
-                  SizedBox(height: 60),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(child: Divider(thickness: 1, color: Colors.grey)),
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 8.0),
+                    TextFormField(
+                      controller: _passwordController,
+                      obscureText: _obscurePassword,
+                      decoration: InputDecoration(
+                        labelText: "Password",
+                        prefixIcon: Icon(Icons.key_sharp, color: Colors.grey),
+                        suffixIcon: IconButton(
+                            onPressed: (){
+                              setState(() {
+                                _obscurePassword = !_obscurePassword;
+                              });
+                            },
+                            icon: Icon(
+                              _obscurePassword
+                                ? Icons.visibility_off_outlined
+                                : Icons.visibility_outlined,
+                              color: Color(0xFFFF5177),
+                              size: 21,
+                                ),
+                        ),
+                        border: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Color(0xFFFF5177),
+                            width: 2,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Color(0xFFFF5177), // Border color when focused
+                            width: 2,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        contentPadding: EdgeInsets.symmetric(
+                          vertical: 15,
+                          horizontal: 20,
+                        ),
+                      ),
+                      validator: validatePassword,
+                    ),
+                    SizedBox(height: 10),
+                    if (_errorMessage != null) ...[
+                      SizedBox(height: 10),
+                      Text(_errorMessage!, style: TextStyle(color: Colors.red)),
+                    ],
+
+                    // Remember Me Checkbox
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Padding(
+                          padding: EdgeInsets.only(right: 0.0),
+                          child: Theme(
+                            data: Theme.of(context).copyWith(
+                              unselectedWidgetColor: Color(0xFFFF5177),
+                            ),
+                            child: Checkbox(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(4.0),
+                              ),
+                              side: MaterialStateBorderSide.resolveWith(
+                                    (states) => BorderSide(width: 1.5, color: Color(0xFFFF5177)),
+                              ),
+                              value: _isChecked,
+                              onChanged: (bool? value) async {
+                                setState(() {
+                                  _isChecked = value ?? false;
+                                });
+
+                                SharedPreferences prefs = await SharedPreferences.getInstance();
+                                await prefs.setBool('rememberMe', _isChecked);
+                              },
+                              activeColor: Color(0xFFFF5177),
+                            ),
+                          ),
+                        ),
+                        Text(
+                          "Remember me",
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+
+                    SizedBox(height: 10),
+
+                    // Sign Up Button
+                    SizedBox(
+                      width: 360,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color(0xFFFF5177),
+                          padding: EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                        ),
+                        onPressed: _isLoading
+                              ? null
+                              : () {
+                            if (_formKey.currentState != null) {
+                              if (_formKey.currentState!.validate()) {
+                                _signInWithEmailAndPassword();
+                              }
+                            }
+                          },
                         child: Text(
-                          "or continue with",
-                          style: TextStyle(color: Colors.black),
+                          "Sign in",
+                          style: TextStyle(color: Colors.white, fontSize: 15),
                         ),
                       ),
-                      Expanded(child: Divider(thickness: 1, color: Colors.grey)),
-                    ],
-                  ),
-                  SizedBox(height: 20),
+                    ),
+                    SizedBox(height: 20),
 
-                  // Google Sign-In Button
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      InkWell(
-                        onTap: _signInWithGoogle,
-                        child: Container(
-                          padding: EdgeInsets.all(8.0),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey, width: 1),
-                            borderRadius: BorderRadius.circular(15),
-                          ),
-                          child: Image.asset(
-                            'images/icons8-google-48.png',
-                            width: 40,
-                            height: 40,
-                          ),
+                    GestureDetector(
+                      onTap: (){
+                        Navigator.push(context,
+                          MaterialPageRoute(builder: (context) => ForgotPasswordScreen()),
+                        );
+                      },
+                      child: Text("Forgot password?",
+                        style: TextStyle(color: Color(0xFFFF5177), fontWeight: FontWeight.bold,
+                          fontSize: 15,
                         ),
                       ),
-                    ],
-                  ),
-                ],
+                    ),
+
+                    SizedBox(height: 60),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(child: Divider(thickness: 1, color: Colors.grey)),
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 8.0),
+                          child: Text(
+                            "or continue with",
+                            style: TextStyle(color: Colors.black),
+                          ),
+                        ),
+                        Expanded(child: Divider(thickness: 1, color: Colors.grey)),
+                      ],
+                    ),
+                    SizedBox(height: 20),
+
+                    // Google Sign-In Button
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        InkWell(
+                          onTap: _signInWithGoogle,
+                          child: Container(
+                            padding: EdgeInsets.all(8.0),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey, width: 1),
+                              borderRadius: BorderRadius.circular(15),
+                            ),
+                            child: Image.asset(
+                              'images/icons8-google-48.png',
+                              width: 40,
+                              height: 40,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

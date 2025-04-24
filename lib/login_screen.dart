@@ -1,10 +1,12 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:park_it2/admin_login_page.dart';
 import 'login_password_screen.dart';
 import 'signup_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'home_screen.dart';
+import 'admin_login_page.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -31,7 +33,6 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } catch (e) {
       print('Google Sign-in error: $e');
-      // Handle error (show snackbar, dialog, etc.)
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Google Sign-in failed')));
     }
   }
@@ -47,6 +48,25 @@ class _LoginScreenState extends State<LoginScreen> {
             Navigator.pop(context);
           },
         ),
+        actions: [
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => AdminLoginPage()),
+              );
+            },
+            child: Text(
+              "Log in as Admin",
+              style: TextStyle(
+                color: Color(0xFF838AE0),
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+              ),
+            ),
+          ),
+          SizedBox(width: 10),
+        ],
       ),
       body: Center(
         child: Column(

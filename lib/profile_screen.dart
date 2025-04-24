@@ -8,6 +8,10 @@ import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'login_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+
+
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -17,6 +21,25 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   File? _image;
+  String? _userName;
+  String? _userEmail;
+
+
+  @override
+  void initState (){
+    super.initState();
+    _loadUserData();
+  }
+
+  void _loadUserData(){
+    final user= FirebaseAuth.instance.currentUser;
+    setState(() {
+      _userName= user?.displayName ?? "No name";
+      _userEmail= user?.email ?? "No Email";
+    });
+  }
+
+
 
   void showLogoutBottomSheet(BuildContext context) {
     showModalBottomSheet(
@@ -171,8 +194,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ],
               ),
-             SizedBox(height: 20),
-              Text("saja"),
+             SizedBox(height: 10),
+              Text(_userName ?? '', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),),
+              Text(_userEmail ?? '', style: TextStyle(fontSize: 16, ),),
+              SizedBox(height: 10),
               Divider(color: Colors.grey, indent: 20, endIndent: 20,),
               Align(
                 alignment: Alignment.centerLeft,

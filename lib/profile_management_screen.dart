@@ -54,7 +54,8 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         leading: IconButton(
-          onPressed: () => Navigator.pop(context, MaterialPageRoute(builder: (context)=> ProfileScreen())),
+          onPressed: () =>
+              Navigator.pop(context, MaterialPageRoute(builder: (context)=> ProfileScreen())),
           icon: Icon(Icons.arrow_back, color: Colors.black),
         ),
         title: Text(
