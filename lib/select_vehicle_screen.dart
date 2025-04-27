@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:park_it2/book_parking_screen.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 
 class SelectVehicleScreen extends StatefulWidget {
