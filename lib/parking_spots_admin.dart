@@ -33,7 +33,6 @@ Future <void> deleteSpot (String parkingLotId) async{
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
                 blurRadius: 6,
                 offset: Offset(0, 2),
               )
@@ -82,7 +81,6 @@ Future <void> editSpot(String parkingLotId) async{
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
                   blurRadius: 6,
                   offset: Offset(0, 2),
                 )

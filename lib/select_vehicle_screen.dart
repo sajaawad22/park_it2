@@ -62,7 +62,6 @@ class _SelectVehicleScreenState extends State<SelectVehicleScreen> {
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
                           blurRadius: 6,
                           offset: Offset(0, 2),
                         )
