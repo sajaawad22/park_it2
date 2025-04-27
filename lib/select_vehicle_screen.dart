@@ -184,12 +184,12 @@ class _SelectVehicleScreenState extends State<SelectVehicleScreen> {
                               fetchVehicles();
                             }
                           },
-                          child: Text('Add', style: TextStyle(color: Colors.white),),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Color(0xFFFF5177),
                             minimumSize: Size(double.infinity, 50),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                           ),
+                          child: Text('Add', style: TextStyle(color: Colors.white),),
                         ),
                       ),
                     ],

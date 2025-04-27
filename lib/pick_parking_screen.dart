@@ -31,6 +31,8 @@ class PickParkingScreen extends StatefulWidget {
 class _PickParkingScreenState extends State<PickParkingScreen> {
   String? selectedSpotId;
   String? selectedSpotName;
+
+
   Future<List<Map<String, dynamic>>> fetchParkingSpots() async {
     final parkingLotName = widget.parkingData['name'];
 
