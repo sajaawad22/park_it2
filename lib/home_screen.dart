@@ -35,7 +35,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  late GoogleMapController _mapController;
+  GoogleMapController? _mapController;
   LatLng _currentLocation = LatLng(0, 0);
   gm_cluster.ClusterManager<ParkingSpot>? _clusterManager;
   Set<Marker> _markers = {};
@@ -54,46 +54,82 @@ class _HomeScreenState extends State<HomeScreen> {
       });
     }
   }
+  Future<LatLng?> snapToRoad(LatLng point) async {
+    final apiKey = 'AIzaSyCHR0DeeWdPtZCHh1sP6qAnN3Tstbh-Gzg';
+    final url = Uri.parse(
+      'https://roads.googleapis.com/v1/snapToRoads?path=${point.latitude},${point.longitude}&key=$apiKey',
+    );
 
+    final response = await http.get(url);
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      if (data['snappedPoints'] != null && data['snappedPoints'].isNotEmpty) {
+        final snapped = data['snappedPoints'][0]['location'];
+        return LatLng(snapped['latitude'], snapped['longitude']);
+      }
+    } else {
+      print("❌ Roads API Error: ${response.body}");
+    }
+    return null;
+  }
   Future<void> _navigateToSelectedParking() async {
-    final current = _currentLocation;
-    final destination = LatLng(widget.selectedParkingData?['lat'], widget.selectedParkingData?['lng']);
+    final rawCurrent = _currentLocation;
+    final rawDestination = LatLng(
+      (widget.selectedParkingData?['lat'] as num).toDouble(),
+      (widget.selectedParkingData?['lng'] as num).toDouble(),
+    );
 
-    print("🚗 Starting route from $current to $destination");
+    final origin = await snapToRoad(rawCurrent) ?? rawCurrent;
+    final destination = await snapToRoad(rawDestination) ?? rawDestination;
 
-    final routePoints = await _getDirectionsRoute(current, destination);
+    print("🧭 Snapped Origin: $origin");
+    print("🏁 Snapped Destination: $destination");
+
+    final routePoints = await _getDirectionsRoute(origin, destination);
     print("📍 Route points count: ${routePoints.length}");
 
-    if (routePoints.isNotEmpty) {
+    if (routePoints.isNotEmpty && _mapController != null) {
       _drawRoute(routePoints);
-
-      _mapController.animateCamera(CameraUpdate.newLatLngBounds(
+      _mapController!.animateCamera(CameraUpdate.newLatLngBounds(
         LatLngBounds(
           southwest: LatLng(
-            current.latitude < destination.latitude ? current.latitude : destination.latitude,
-            current.longitude < destination.longitude ? current.longitude : destination.longitude,
+            origin.latitude < destination.latitude ? origin.latitude : destination.latitude,
+            origin.longitude < destination.longitude ? origin.longitude : destination.longitude,
           ),
           northeast: LatLng(
-            current.latitude > destination.latitude ? current.latitude : destination.latitude,
-            current.longitude > destination.longitude ? current.longitude : destination.longitude,
+            origin.latitude > destination.latitude ? origin.latitude : destination.latitude,
+            origin.longitude > destination.longitude ? origin.longitude : destination.longitude,
           ),
         ),
         50,
       ));
     } else {
-      print("⚠️ No route points found. Polyline not drawn.");
+      print("⚠️ No route points found after snapping. Polyline not drawn.");
     }
   }
   Future<List<LatLng>> _getDirectionsRoute(LatLng origin, LatLng destination) async {
-    const apiKey = 'AIzaSyDqNx3m506ugp8JYrHIbPTxC04I_bChLfE'; // Replace with your actual key
+    const apiKey = 'AIzaSyCHR0DeeWdPtZCHh1sP6qAnN3Tstbh-Gzg';
     final url = Uri.parse(
-      'https://maps.googleapis.com/maps/api/directions/json?origin=${origin.latitude},${origin.longitude}&destination=${destination.latitude},${destination.longitude}&key=$apiKey',
+    'https://maps.googleapis.com/maps/api/directions/json?origin=${origin.latitude},${origin.longitude}&destination=${destination.latitude},${destination.longitude}&mode=walking&key=$apiKey',
     );
-
+    print("Origin: $_currentLocation");
+    print("Destination: $destination");
     final response = await http.get(url);
-    final data = json.decode(response.body);
+    print("🌐 Response status: ${response.statusCode}");
+    print("📦 Raw response body: ${response.body}");
 
-    if (data['routes'].isEmpty) return [];
+    final data = json.decode(response.body);
+    print("🗺️ Directions API status: ${data['status']}");
+
+    if (data['status'] != 'OK') {
+      print("❌ Directions API error: ${data['error_message'] ?? 'No error message provided'}");
+      return [];
+    }
+
+    if (data['routes'].isEmpty) {
+      print("⚠️ No routes found in the response.");
+      return [];
+    }
 
     final points = data['routes'][0]['overview_polyline']['points'];
     return _decodePolyline(points);
@@ -380,12 +416,16 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() {
         _currentLocation = LatLng(position.latitude, position.longitude);
       });
+
+      if (widget.selectedParkingData != null) {
+        _navigateToSelectedParking();
+      }
+
       if (_mapController != null) {
-        _mapController.animateCamera(CameraUpdate.newLatLng(_currentLocation));
+        _mapController!.animateCamera(CameraUpdate.newLatLng(_currentLocation));
       }
     } catch (e) {
       print('Error getting location: $e');
-      // Handle error
     }
   }
 
@@ -393,20 +433,22 @@ class _HomeScreenState extends State<HomeScreen> {
     _mapController = controller;
     if (_clusterManager != null) {
       _clusterManager!.setMapId(controller.mapId);
-      _clusterManager!.updateMap(); // force update markers
+      _clusterManager!.updateMap();
     }
-    //_getCurrentLocation();
     if (widget.initialLocation != null) {
-      _mapController.animateCamera(
-          CameraUpdate.newCameraPosition(
-            CameraPosition(
-              target: LatLng(
-                widget.initialLocation!.latitude,
-                widget.initialLocation!.longitude,
-              ),
-              zoom: 17, // Zoomed-in view for selected parking spot
-        ),
+
+      if (_mapController != null) {
+        _mapController!.animateCamera(  CameraUpdate.newCameraPosition(
+          CameraPosition(
+            target: LatLng(
+              widget.initialLocation!.latitude,
+              widget.initialLocation!.longitude,
+            ),
+            zoom: 17,
           ),
+        ),);
+      }(
+
       );
     }
   }

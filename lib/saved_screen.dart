@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:park_it2/booking_screen.dart';
 import 'package:park_it2/profile_screen.dart';
@@ -64,67 +65,90 @@ class _SavedScreenState extends State<SavedScreen> {
 
       ),
       body: Padding(
-          padding: const EdgeInsets.all(20.0),
-        child: saved.isEmpty
-            ? Center(child: CircularProgressIndicator())
-            : ListView.builder(
-          itemCount: saved.length,
-          itemBuilder: (context, index) {
-            final item = saved[index];
-            return Container(
-              margin: const EdgeInsets.symmetric(vertical: 10),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 4,
-                    offset: Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.horizontal(left: Radius.circular(12)),
-                    child: Image.network(
-                      item['imageUrl'],
-                      width: 120,
-                      height: 100,
-                      fit: BoxFit.cover,
-                    ),),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            item['name'],
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 2,
-                          ),
-                          SizedBox(height: 4),
-                          Text(
-                            item['address'],
-                            style: TextStyle(fontSize: 10, color: Colors.grey),
-                          ),
-                          SizedBox(height: 4),
-                        ],
+        padding: const EdgeInsets.all(20.0),
+        child: StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('saved_spots')
+              .where('userEmail', isEqualTo: FirebaseAuth.instance.currentUser?.email)
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(child: CircularProgressIndicator());
+            }
+
+            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+              return Center(child: Text("No saved spots yet."));
+            }
+
+            final saved = snapshot.data!.docs;
+
+            return ListView.builder(
+              itemCount: saved.length,
+              itemBuilder: (context, index) {
+                final item = saved[index].data() as Map<String, dynamic>;
+                final docId = saved[index].id;
+
+                return Container(
+                  margin: const EdgeInsets.symmetric(vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 4,
+                        offset: Offset(0, 2),
                       ),
-                    ),
+                    ],
                   ),
-                  IconButton(
-                    icon: Icon(Icons.bookmark), color: Color(0xFFFF5177),
-                    onPressed: () {},
+                  child: Row(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.horizontal(left: Radius.circular(12)),
+                        child: Image.network(
+                          item['imageUrl'],
+                          width: 120,
+                          height: 100,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                item['name'] ?? 'Unknown',
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 2,
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                item['address'] ?? '',
+                                style: TextStyle(fontSize: 10, color: Colors.grey),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.bookmark, color: Color(0xFFFF5177)),
+                        onPressed: () async {
+                          await FirebaseFirestore.instance
+                              .collection('saved_spots')
+                              .doc(docId)
+                              .delete();
+                        },
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                );
+              },
             );
-            },
+          },
         ),
       ),
         bottomNavigationBar: BottomNavigationBar(
